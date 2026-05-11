@@ -1,3 +1,5 @@
+# Code from https://colab.research.google.com/github/googlesamples/mediapipe/blob/main/examples/hand_landmarker/python/hand_landmarker.ipynb
+
 import cv2
 import mediapipe as mp
 mp_drawing = mp.solutions.drawing_utils
