@@ -1,5 +1,5 @@
 import cv2
-from src.ui import draw_circles
+# from src.ui import draw_circles
 
 def main():
     cap = cv2.VideoCapture(0)
@@ -13,8 +13,6 @@ def main():
             break
         
         frame = cv2.flip(frame, 1)
-        
-        frame = draw_circles(frame, width, height)
 
         cv2.imshow('AIRCHORDS', frame)
         
