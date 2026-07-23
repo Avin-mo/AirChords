@@ -10,7 +10,7 @@ mp_hands = mp.solutions.hands
 IMAGE_FILES = []
 with mp_hands.Hands(
     static_image_mode=True,
-    max_num_hands=2,
+    max_num_hands=3,
     min_detection_confidence=0.5) as hands:
   for idx, file in enumerate(IMAGE_FILES):
     # Read an image, flip it around y-axis for correct handedness output (see
@@ -51,6 +51,7 @@ with mp_hands.Hands(
 cap = cv2.VideoCapture(0)
 with mp_hands.Hands(
     model_complexity=0,
+    max_num_hands=3,
     min_detection_confidence=0.5,
     min_tracking_confidence=0.5) as hands:
   while cap.isOpened():
