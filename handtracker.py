@@ -1,4 +1,4 @@
-# Code from https://colab.research.google.com/github/googlesamples/mediapipe/blob/main/examples/hand_landmarker/python/hand_landmarker.ipynb
+# Base of the code from https://colab.research.google.com/github/googlesamples/mediapipe/blob/main/examples/hand_landmarker/python/hand_landmarker.ipynb
 
 import cv2
 import mediapipe as mp
@@ -11,7 +11,7 @@ IMAGE_FILES = []
 with mp_hands.Hands(
     static_image_mode=True,
     max_num_hands=3,
-    min_detection_confidence=0.5) as hands:
+    min_detection_confidence=0.8) as hands:
   for idx, file in enumerate(IMAGE_FILES):
     # Read an image, flip it around y-axis for correct handedness output (see
     # above).
