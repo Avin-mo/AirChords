@@ -22,14 +22,13 @@ def get_finger_states(hand_landmarks, label):
     
 RIGHT_HAND_CHORDS = {
     (False, False, False, False, False): "pause",
-    (False, True, True, False, False):   "C",
-    (True, True, True, True, True):      "D",
-    (False, False, True, True, True):    "E",
-    (True, True, False, False, True):    "F",
-    (True, False, False, False, True):   "G",
-    (True, True, True, False, False):    "A",
-    (False, False, False, False, True):  "B",
-    (False, True, True, True, False):    "F#",
+    (True, True, True, True, True):   "C",
+    (True, False, False, False, False):      "D",
+    (True, True, False, False, False):    "E",
+    (True, True, True, False, False):    "F",
+    (True, True, True, True, False):   "G",
+    (True, False, False, False, True):    "A",
+    (True, True, False, False, True):  "B"
 }
 
 LEFT_HAND_TYPES = {
