@@ -5,6 +5,21 @@ mp_drawing_styles = mp.solutions.drawing_styles
 mp_hands = mp.solutions.hands
 
 
+def get_finger_states(hand_landmarks, label):
+
+    index_up = hand_landmarks.landmark[8].y < hand_landmarks.landmark[6].y
+    middle_up = hand_landmarks.landmark[12].y < hand_landmarks.landmark[10].y
+    ring_up = hand_landmarks.landmark[16].y < hand_landmarks.landmark[14].y
+    pinky_up = hand_landmarks.landmark[20].y < hand_landmarks.landmark[18].y
+
+    if label == "Left":
+        thumb_up = hand_landmarks.landmark[4].x < hand_landmarks.landmark[3].x
+    else:
+        thumb_up = hand_landmarks.landmark[4].x > hand_landmarks.landmark[3].x
+
+    return thumb_up, index_up, middle_up, ring_up, pinky_up
+
+    
 LEFT_HAND_CHORDS = {
     (False, False, False, False, False): "fist",
     (False, True, True, False, False):   "C",
