@@ -37,10 +37,10 @@ def preload_chords():
 
 
 def generate_chord(root, chord_type):
-    t = np.linspace(0, 2, 44100 * 2)
+    t = np.linspace(0, 8, 44100 * 8)
     root_freq = NOTE_FREQ.get(root)
     intervals = CHORD_INTERVALS.get(chord_type)
-    wave = np.zeros(44100 * 2)
+    wave = np.zeros(44100 * 8)
     for i in intervals:
         freq = root_freq * 2**(i/12)
         wave += np.sin(2 * np.pi * freq * t)
