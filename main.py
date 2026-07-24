@@ -1,6 +1,7 @@
 import cv2
 import mediapipe as mp
 from src.handtracker import get_finger_states, detect_sign
+from src.ui import draw_hand_ui
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -8,6 +9,8 @@ mp_hands = mp.solutions.hands
 
 def main():
     cap = cv2.VideoCapture(0)
+    width = int(cap.get(3))
+    height = int(cap.get(4))
     
     with mp_hands.Hands(
         model_complexity=0,
@@ -27,6 +30,7 @@ def main():
             image.flags.writeable = True
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             
+            
             if results.multi_hand_landmarks:
                 for hand_landmarks, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
                     mp_drawing.draw_landmarks(
@@ -44,8 +48,16 @@ def main():
                     sign = detect_sign(thumb, index, middle, ring, pinky)
                     print(label, sign)
                     
+                    draw_hand_ui(image, hand_landmarks, sign, width, height)
+                    
+            
+            image = cv2.flip(image, 1)
 
-            cv2.imshow('AirChords', cv2.flip(image, 1))
+            if results.multi_hand_landmarks:
+                for hand_landmarks, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
+                    draw_hand_ui(image, hand_landmarks, sign, width, height)
+
+            cv2.imshow('AirChords', image)
             if cv2.waitKey(1) == ord('q'):
                 break
 
