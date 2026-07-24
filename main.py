@@ -45,7 +45,7 @@ def main():
 
                     thumb, index, middle, ring, pinky = get_finger_states(hand_landmarks, label)
 
-                    if label == "Left":
+                    if label == "Right":
                         result = detect_chord(thumb, index, middle, ring, pinky)
                     else:
                         result = detect_sign(thumb, index, middle, ring, pinky)
@@ -57,8 +57,8 @@ def main():
             for label, (hand_landmarks, result) in signs.items():
                 draw_hand_ui(image, hand_landmarks, result, width, height)
 
-            chord = signs.get("Left", (None, None))[1]
-            chord_type = signs.get("Right", (None, None))[1]
+            chord = signs.get("Right", (None, None))[1]
+            chord_type = signs.get("Left", (None, None))[1]
 
             if chord and chord_type and chord != "fist" and chord_type != "fist":
                 print(f"{chord} {chord_type}")
