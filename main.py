@@ -2,6 +2,8 @@ import cv2
 import mediapipe as mp
 from src.handtracker import detect_chord, detect_sign, get_finger_states
 from src.ui import draw_hand_ui
+from src.audio import play_chord, stop_chord
+
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -17,6 +19,8 @@ def main():
         max_num_hands=2,
         min_detection_confidence=0.5,
         min_tracking_confidence=0.5) as hands:
+        
+        last_chord = None
 
         while cap.isOpened():
             success, image = cap.read()
@@ -60,9 +64,18 @@ def main():
             chord = signs.get("Right", (None, None))[1]
             chord_type = signs.get("Left", (None, None))[1]
 
-            if chord and chord_type and chord != "fist" and chord_type != "fist":
-                print(f"{chord} {chord_type}")
-
+            current_chord = (chord, chord_type)
+            
+            if chord and chord_type and chord != "pause" and chord_type != "pause":
+                if current_chord != last_chord:
+                    stop_chord()
+                    play_chord(chord, chord_type)
+                    last_chord = current_chord
+            else:
+                stop_chord()
+                last_chord = None
+            
+            
             cv2.imshow('AirChords', image)
             if cv2.waitKey(1) == ord('q'):
                 break
