@@ -2,10 +2,6 @@ import numpy as np
 import sounddevice as sd
 import threading
 
-def play_sound():
-    sd.play(wave, samplerate=44100)
-    sd.wait()
-
 
 # y = amplitude * sin(2 * pi * frequency * t)
 t = np.linspace(0, 2, 44100 * 2)
