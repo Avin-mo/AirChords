@@ -1,4 +1,4 @@
-# Base of the code from https://colab.research.google.com/github/googlesamples/mediapipe/blob/main/examples/hand_landmarker/python/hand_landmarker.ipynb
+# Part of the code in this page (the main tracking functions) is from: https://colab.research.google.com/github/googlesamples/mediapipe/blob/main/examples/hand_landmarker/python/hand_landmarker.ipynb
 
 import cv2
 import mediapipe as mp
