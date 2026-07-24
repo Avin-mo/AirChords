@@ -20,8 +20,8 @@ def get_finger_states(hand_landmarks, label):
     return thumb_up, index_up, middle_up, ring_up, pinky_up
 
     
-LEFT_HAND_CHORDS = {
-    (False, False, False, False, False): "fist",
+RIGHT_HAND_CHORDS = {
+    (False, False, False, False, False): "pause",
     (False, True, True, False, False):   "C",
     (True, True, True, True, True):      "D",
     (False, False, True, True, True):    "E",
@@ -32,8 +32,8 @@ LEFT_HAND_CHORDS = {
     (False, True, True, True, False):    "F#",
 }
 
-RIGHT_HAND_TYPES = {
-    (False, False, False, False, False): "fist",
+LEFT_HAND_TYPES = {
+    (False, False, False, False, False): "pause",
     (True, True, True, True, True):     "Major",
     (False, True, True, False, False):  "Minor",
     (False, False, True, True, True):   "7th",
@@ -45,7 +45,7 @@ RIGHT_HAND_TYPES = {
 }
 
 def detect_chord(thumb, index, middle, ring, pinky):
-    return LEFT_HAND_CHORDS.get((thumb, index, middle, ring, pinky))
+    return RIGHT_HAND_CHORDS.get((thumb, index, middle, ring, pinky))
 
 def detect_sign(thumb, index, middle, ring, pinky):
-    return RIGHT_HAND_TYPES.get((thumb, index, middle, ring, pinky))
+    return LEFT_HAND_TYPES.get((thumb, index, middle, ring, pinky))
