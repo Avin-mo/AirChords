@@ -2,7 +2,7 @@ import cv2
 import mediapipe as mp
 from src.handtracker import detect_chord, detect_sign, get_finger_states
 from src.ui import draw_hand_ui
-from src.audio import play_chord, stop_chord
+from src.audio import play_chord, stop_chord, preload_chords
 
 
 mp_drawing = mp.solutions.drawing_utils
@@ -21,6 +21,7 @@ def main():
         min_tracking_confidence=0.5) as hands:
         
         last_chord = None
+        preload_chords()
 
         while cap.isOpened():
             success, image = cap.read()
