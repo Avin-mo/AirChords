@@ -28,6 +28,14 @@ CHORD_INTERVALS = {
     "Aug":   [0, 4, 8],
 }
 
+CHORD_CACHE = {}
+
+def preload_chords():
+    for root in NOTE_FREQ:
+        for chord_type in CHORD_INTERVALS:
+            CHORD_CACHE[(root, chord_type)] = generate_chord(root, chord_type)
+
+
 def generate_chord(root, chord_type):
     t = np.linspace(0, 2, 44100 * 2)
     root_freq = NOTE_FREQ.get(root)
@@ -38,15 +46,16 @@ def generate_chord(root, chord_type):
         wave += np.sin(2 * np.pi * freq * t)
     
     # fade in over 0.1 seconds
-    fade_samples = int(44100 * 0.3)
+    fade_samples = int(44100 * 0.1)
     wave[:fade_samples] *= np.linspace(0, 1, fade_samples)
     
     return wave
 
 def play_chord(root, chord_type):
-    wave = generate_chord(root, chord_type)
-    thread = threading.Thread(target=lambda: sd.play(wave, samplerate=44100, loop=True))
-    thread.start()
+    wave = CHORD_CACHE.get((root, chord_type))
+    if wave is not None:
+        thread = threading.Thread(target=lambda: sd.play(wave, samplerate=44100, loop=True))
+        thread.start()
     
 def stop_chord():
     sd.stop()
