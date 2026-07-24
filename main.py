@@ -1,5 +1,6 @@
 import cv2
 import mediapipe as mp
+from src.handtracker import get_finger_states, detect_sign
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -35,6 +36,13 @@ def main():
                         mp_drawing_styles.get_default_hand_landmarks_style(),
                         mp_drawing_styles.get_default_hand_connections_style())
                     
+                    
+                    label = handedness.classification[0].label
+                    label = "Left" if label == "Right" else "Right"
+
+                    thumb, index, middle, ring, pinky = get_finger_states(hand_landmarks, label)
+                    sign = detect_sign(thumb, index, middle, ring, pinky)
+                    print(label, sign)
                     
 
             cv2.imshow('AirChords', cv2.flip(image, 1))
