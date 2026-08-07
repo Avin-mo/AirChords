@@ -1,7 +1,9 @@
 import numpy as np
 import sounddevice as sd
 import threading
+import time
 
+current_stream = None
 
 # y = amplitude * sin(2 * pi * frequency * t)
 t = np.linspace(0, 2, 44100 * 2)
@@ -37,25 +39,30 @@ def preload_chords():
 
 
 def generate_chord(root, chord_type):
-    t = np.linspace(0, 8, 44100 * 8)
+    t = np.linspace(0, 8, 44100 * 8, endpoint=False)
     root_freq = NOTE_FREQ.get(root)
     intervals = CHORD_INTERVALS.get(chord_type)
     wave = np.zeros(44100 * 8)
-    for i in intervals:
+    for n, i in enumerate(intervals):
         freq = root_freq * 2**(i/12)
-        wave += np.sin(2 * np.pi * freq * t)
-    
-    # fade in over 0.1 seconds
+        amp = 1 / (n + 1)**1.5  # each higher note in the chord a bit quieter
+        wave += amp * np.sin(2 * np.pi * freq * t)
+    wave /= np.sum([1/(n+1) for n in range(len(intervals))])  # normalize to avoid clipping
+
     fade_samples = int(44100 * 0.1)
     wave[:fade_samples] *= np.linspace(0, 1, fade_samples)
-    
+    wave[-fade_samples:] *= np.linspace(1, 0, fade_samples)  # fade out too
     return wave
 
 def play_chord(root, chord_type):
+    global current_stream
     wave = CHORD_CACHE.get((root, chord_type))
-    if wave is not None:
-        thread = threading.Thread(target=lambda: sd.play(wave, samplerate=44100, loop=True))
-        thread.start()
+    if wave is None:
+        return
+    def _play():
+        sd.play(wave, samplerate=44100, loop=True)
+    thread = threading.Thread(target=_play)
+    thread.start()
     
-def stop_chord():
+def stop_chord(fade_ms=30):
     sd.stop()
