@@ -1,12 +1,8 @@
 import numpy as np
 import sounddevice as sd
 import threading
-import time
 
-current_stream = None
-
-# y = amplitude * sin(2 * pi * frequency * t)
-t = np.linspace(0, 2, 44100 * 2)
+SAMPLE_RATE = 44100
 
 NOTE_FREQ = {
     "C":  261.63,
@@ -32,37 +28,143 @@ CHORD_INTERVALS = {
 
 CHORD_CACHE = {}
 
+
+def generate_chord(root, chord_type):
+    root_freq = NOTE_FREQ[root]
+    intervals = CHORD_INTERVALS[chord_type]
+
+    # snap length to whole cycles of the root so the loop point is seamless
+    n_cycles = max(1, int(root_freq * 8))
+    duration = n_cycles / root_freq
+    n_samples = int(SAMPLE_RATE * duration)
+    t = np.linspace(0, duration, n_samples, endpoint=False)
+
+    weights = [1 / (n + 1) for n in range(len(intervals))]
+    total_weight = sum(weights)
+
+    wave = np.zeros(n_samples, dtype=np.float64)
+    for n, i in enumerate(intervals):
+        freq = root_freq * 2 ** (i / 12)
+        wave += (weights[n] / total_weight) * np.sin(2 * np.pi * freq * t)
+
+    return wave.astype(np.float32)
+
+
 def preload_chords():
     for root in NOTE_FREQ:
         for chord_type in CHORD_INTERVALS:
             CHORD_CACHE[(root, chord_type)] = generate_chord(root, chord_type)
+    _engine.start()
 
 
-def generate_chord(root, chord_type):
-    t = np.linspace(0, 8, 44100 * 8, endpoint=False)
-    root_freq = NOTE_FREQ.get(root)
-    intervals = CHORD_INTERVALS.get(chord_type)
-    wave = np.zeros(44100 * 8)
-    for n, i in enumerate(intervals):
-        freq = root_freq * 2**(i/12)
-        amp = 1 / (n + 1)**1.5  # each higher note in the chord a bit quieter
-        wave += amp * np.sin(2 * np.pi * freq * t)
-    wave /= np.sum([1/(n+1) for n in range(len(intervals))])  # normalize to avoid clipping
+class _ChordEngine:
+    """
+    Keeps one continuous output stream open and handles chord changes
+    by fading out, swapping the waveform, then fading in - instead of
+    hard-cutting playback, which is what causes the pop.
+    """
 
-    fade_samples = int(44100 * 0.1)
-    wave[:fade_samples] *= np.linspace(0, 1, fade_samples)
-    wave[-fade_samples:] *= np.linspace(1, 0, fade_samples)  # fade out too
-    return wave
+    FADE_SECONDS = 0.02  # 20ms fade, short enough to feel instant
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._stream = None
+
+        self._state = "idle"  # idle | fading_out | fading_in | playing
+        self._current_wave = None
+        self._pending_wave = None
+        self._pos = 0
+        self._gain = 0.0
+        self._fade_samples = int(SAMPLE_RATE * self.FADE_SECONDS)
+        self._gain_step = 1.0 / self._fade_samples
+
+    def start(self):
+        if self._stream is None:
+            self._stream = sd.OutputStream(
+                channels=1,
+                samplerate=SAMPLE_RATE,
+                callback=self._callback,
+                blocksize=0,
+            )
+            self._stream.start()
+
+    def play(self, wave):
+        with self._lock:
+            if self._state == "idle":
+                self._current_wave = wave
+                self._pos = 0
+                self._gain = 0.0
+                self._state = "fading_in"
+            else:
+                self._pending_wave = wave
+                self._state = "fading_out"
+
+    def stop(self):
+        with self._lock:
+            if self._state in ("playing", "fading_in"):
+                self._pending_wave = None
+                self._state = "fading_out"
+
+    def _read(self, wave, n):
+        L = len(wave)
+        idx = (self._pos + np.arange(n)) % L
+        self._pos = (self._pos + n) % L
+        return wave[idx]
+
+    def _callback(self, outdata, frames, time_info, status):
+        out = np.zeros(frames, dtype=np.float32)
+
+        with self._lock:
+            i = 0
+            while i < frames:
+                if self._state == "idle":
+                    break
+
+                elif self._state == "fading_out":
+                    n = min(frames - i, self._fade_samples)
+                    if self._current_wave is not None:
+                        chunk = self._read(self._current_wave, n)
+                        ramp = np.clip(self._gain - self._gain_step * np.arange(n), 0, 1)
+                        out[i:i + n] += chunk * ramp
+                        self._gain = max(self._gain - self._gain_step * n, 0.0)
+                    else:
+                        self._gain = 0.0
+
+                    if self._gain <= 0.0:
+                        self._current_wave = self._pending_wave
+                        self._pending_wave = None
+                        self._pos = 0
+                        self._state = "fading_in" if self._current_wave is not None else "idle"
+                    i += n
+
+                elif self._state == "fading_in":
+                    n = min(frames - i, self._fade_samples)
+                    chunk = self._read(self._current_wave, n)
+                    ramp = np.clip(self._gain + self._gain_step * np.arange(n), 0, 1)
+                    out[i:i + n] += chunk * ramp
+                    self._gain = min(self._gain + self._gain_step * n, 1.0)
+
+                    if self._gain >= 1.0:
+                        self._state = "playing"
+                    i += n
+
+                elif self._state == "playing":
+                    n = frames - i
+                    chunk = self._read(self._current_wave, n)
+                    out[i:i + n] += chunk
+                    i += n
+
+        outdata[:, 0] = out
+
+
+_engine = _ChordEngine()
+
 
 def play_chord(root, chord_type):
-    global current_stream
     wave = CHORD_CACHE.get((root, chord_type))
-    if wave is None:
-        return
-    def _play():
-        sd.play(wave, samplerate=44100, loop=True)
-    thread = threading.Thread(target=_play)
-    thread.start()
-    
-def stop_chord(fade_ms=30):
-    sd.stop()
+    if wave is not None:
+        _engine.play(wave)
+
+
+def stop_chord():
+    _engine.stop()
